@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Wordsearch</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+        }
+        #puzzle {
+            border: 2px solid #333;
+            background-color: white;
+            user-select: none;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .cell.selected {
+            background-color: #aaffaa;
+        }
+        .cell.found {
+            background-color: #4caf50;
+            font-weight: bold;
+        }
+        #word-list {
+            max-width: 250px;
+        }
+        #word-list h3 {
+            margin-top: 0;
+        }
+        #word-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        #word-list li {
+            margin: 8px 0;
+            font-size: 14px;
+            text-transform: capitalize;
+        }
+        #word-list li.found {
+            text-decoration: line-through;
+            color: #888;
+        }
+        #restart {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        #restart:hover {
+            background-color: #0056b3;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div>
+            <div id="puzzle"></div>
+            <div>
+            <button id="restart">Chơi lại</button>
+        </div>
+    </div>
+    <div id="word-list">
+        <div> <h3>Danh sách từ</h3>
+        <ul id="words"></ul>
+        </div>
+    </div>
+    <script>
+        const words = [
+            'WALK THE DOG', 'MAKE THE BED', 'RIDE A BIKE', 'HAVE A BATH', 'BRUSH MY TEETH',
+            'READ A BOOK', 'PLAY THE GUITAR', 'GO TO SCHOOL', 'WASH THE CAR', 'WAKE UP',
+            'HAVE DINNER', 'PLAY FOOTBALL', 'CLEAN THE HOUSE', 'HAVE A SHOWER', 'WATCH TV',
+            'LISTEN TO MUSIC', 'GET DRESSED', 'TAKE THE BUS', 'DO MY HOMEWORK', 'WATER THE PLANTS',
+            'COMB MY HAIR', 'GO TO BED', 'HAVE BREAKFAST', 'GO HOME', 'WRITE',
+            'PLAY VIDEO GAMES'
+        ].map(word => word.toUpperCase().replace(/\s/g, '')); // Loại bỏ dấu cách để đặt trong lưới
+        const displayWords = [
+            'Walk the dog', 'Make the bed', 'Ride a bike', 'Have a bath', 'Brush my teeth',
+            'Read a book', 'Play the guitar', 'Go to school', 'Wash the car', 'Wake up',
+            'Have dinner', 'Play football', 'Clean the house', 'Have a shower', 'Watch TV',
+            'Listen to music', 'Get dressed', 'Take the bus', 'Do my homework', 'Water the plants',
+            'Comb my hair', 'Go to bed', 'Have breakfast', 'Go home', 'Write',
+            'Play video games'
+        ]; // Danh sách để hiển thị
+
+        const gridSize = 20;
+        let grid = [];
+        let selectedCells = [];
+        let foundWords = [];
+        let startCell = null;
+
+        function initGrid() {
+            grid = Array(gridSize).fill().map(() => Array(gridSize).fill(''));
+            placeWords();
+            fillEmptyCells();
+        }
+
+        function placeWords() {
+            const directions = [
+                [0, 1],  // ngang phải
+                [1, 0],  // dọc xuống
+                [1, 1],  // chéo xuống phải
+                [-1, 1], // chéo lên phải
+                [0, -1], // ngang trái
+                [-1, 0], // dọc lên
+                [-1, -1],// chéo lên trái
+                [1, -1]  // chéo xuống trái
+            ];
+
+            words.forEach(word => {
+                let placed = false;
+                let attempts = 0;
+                const maxAttempts = 100;
+
+                while (!placed && attempts < maxAttempts) {
+                    attempts++;
+                    const dir = directions[Math.floor(Math.random() * directions.length)];
+                    const row = Math.floor(Math.random() * gridSize);
+                    const col = Math.floor(Math.random() * gridSize);
+                    const reverse = Math.random() > 0.5;
+                    const wordToPlace = reverse ? word.split('').reverse().join('') : word;
+
+                    if (canPlaceWord(wordToPlace, row, col, dir)) {
+                        placeWord(wordToPlace, row, col, dir);
+                        placed = true;
+                    }
+                }
+            });
+        }
+
+        function canPlaceWord(word, row, col, dir) {
+            const len = word.length;
+            for (let i = 0; i < len; i++) {
+                const r = row + i * dir[0];
+                const c = col + i * dir[1];
+                if (r < 0 || r >= gridSize || c < 0 || c >= gridSize) return false;
+                if (grid[r][c] !== '' && grid[r][c] !== word[i]) return false;
+            }
+            return true;
+        }
+
+        function placeWord(word, row, col, dir) {
+            for (let i = 0; i < word.length; i++) {
+                const r = row + i * dir[0];
+                const c = col + i * dir[1];
+                grid[r][c] = word[i];
+            }
+        }
+
+        function fillEmptyCells() {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    if (grid[r][c] === '') {
+                        grid[r][c] = letters[Math.floor(Math.random() * letters.length)];
+                    }
+                }
+            }
+        }
+
+        function renderGrid() {
+            const puzzle = document.getElementById('puzzle');
+            puzzle.innerHTML = '';
+            puzzle.style.gridTemplateColumns = `repeat(${gridSize}, 30px)`;
+            puzzle.style.display = 'grid';
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.textContent = grid[r][c];
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    puzzle.appendChild(cell);
+                }
+            }
+        }
+
+        function renderWordList() {
+            const ul = document.getElementById('words');
+            ul.innerHTML = '';
+            displayWords.forEach((word, index) => {
+                const li = document.createElement('li');
+                li.textContent = word;
+                if (foundWords.includes(words[index])) {
+                    li.classList.add('found');
+                }
+                ul.appendChild(li);
+            });
+        }
+
+        function handleMouseDown(e) {
+            if (e.target.classList.contains('cell')) {
+                startCell = e.target;
+                selectedCells = [startCell];
+                startCell.classList.add('selected');
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            }
+        }
+
+        function handleMouseMove(e) {
+            e.preventDefault();
+            if (e.target.classList.contains('cell')) {
+                const endCell = e.target;
+                clearSelection();
+                selectCellsBetween(startCell, endCell);
+            }
+        }
+
+        function handleMouseUp() {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            checkSelectedWord();
+            clearSelection();
+            startCell = null;
+        }
+
+        function selectCellsBetween(start, end) {
+            const startRow = parseInt(start.dataset.row);
+            const startCol = parseInt(start.dataset.col);
+            const endRow = parseInt(end.dataset.row);
+            const endCol = parseInt(end.dataset.col);
+
+            const dr = endRow - startRow;
+            const dc = endCol - startCol;
+            const steps = Math.max(Math.abs(dr), Math.abs(dc));
+            if (steps === 0) return;
+
+            const stepRow = dr / steps;
+            const stepCol = dc / steps;
+
+            selectedCells = [];
+            for (let i = 0; i <= steps; i++) {
+                const r = Math.round(startRow + i * stepRow);
+                const c = Math.round(startCol + i * stepCol);
+                if (r >= 0 && r < gridSize && c >= 0 && c < gridSize) {
+                    const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+                    selectedCells.push(cell);
+                    cell.classList.add('selected');
+                }
+            }
+        }
+
+        function clearSelection() {
+            selectedCells.forEach(cell => cell.classList.remove('selected'));
+            selectedCells = [];
+        }
+
+        function checkSelectedWord() {
+            const selectedText = selectedCells.map(cell => cell.textContent).join('');
+            const reverseText = selectedText.split('').reverse().join('');
+            let wordFound = null;
+            let wordIndex = null;
+
+            if (words.includes(selectedText)) {
+                wordFound = selectedText;
+                wordIndex = words.indexOf(selectedText);
+            } else if (words.includes(reverseText)) {
+                wordFound = reverseText;
+                wordIndex = words.indexOf(reverseText);
+            }
+
+            if (wordFound) {
+                foundWords.push(wordFound);
+                selectedCells.forEach(cell => cell.classList.add('found'));
+                renderWordList();
+                if (foundWords.length === words.length) {
+                    alert('Chúc mừng! Bạn đã tìm hết tất cả các từ!');
+                }
+            }
+        }
+
+        function restartGame() {
+            foundWords = [];
+            initGrid();
+            renderGrid();
+            renderWordList();
+        }
+
+        function init() {
+            initGrid();
+            renderGrid();
+            renderWordList();
+            document.getElementById('puzzle').addEventListener('mousedown', handleMouseDown);
+            document.getElementById('restart').addEventListener('click', restartGame);
+        }
+
+        init();
+    </script>
+</body>
+</html>

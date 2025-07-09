@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Trò Chơi Wordsearch</title>
     <style>
         body {
@@ -13,24 +13,29 @@
             background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
+            touch-action: none; /* Ngăn cuộn mặc định */
         }
         .container {
             display: flex;
+            flex-direction: row;
             gap: 40px;
+            max-width: 100%;
+            flex-wrap: wrap;
         }
         #puzzle {
             border: 2px solid #333;
             background-color: white;
             user-select: none;
+            touch-action: none;
         }
         .cell {
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             display: inline-flex;
             justify-content: center;
             align-items: center;
             border: 1px solid #ddd;
-            font-size: 16px;
+            font-size: 18px;
             text-transform: uppercase;
             cursor: pointer;
             transition: background-color 0.2s;
@@ -43,7 +48,7 @@
             font-weight: bold;
         }
         #word-list {
-            max-width: 250px;
+            max-width: 300px;
         }
         #word-list h3 {
             margin-top: 0;
@@ -54,7 +59,7 @@
         }
         #word-list li {
             margin: 8px 0;
-            font-size: 14px;
+            font-size: 16px;
             text-transform: capitalize;
         }
         #word-list li.found {
@@ -63,8 +68,8 @@
         }
         #restart {
             margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 12px 24px;
+            font-size: 18px;
             cursor: pointer;
             background-color: #007bff;
             color: white;
@@ -74,26 +79,38 @@
         #restart:hover {
             background-color: #0056b3;
         }
-    }
+        @media (max-width: 768px) {
+            .cell {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+            #word-list {
+                max-width: 100%;
+                margin-top: 20px;
+            }
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div>
             <div id="puzzle"></div>
-            <div>
             <button id="restart">Chơi lại</button>
         </div>
-    </div>
-    <div id="word-list">
-        <div> <h3>Danh sách từ</h3>
-        <ul id="words"></ul>
+        <div id="word-list">
+            <h3>Danh sách từ</h3>
+            <ul id="words"></ul>
         </div>
     </div>
     <script>
         const words = [
             'WALK THE DOG', 'MAKE THE BED', 'RIDE A BIKE', 'HAVE A BATH', 'BRUSH MY TEETH',
-            'READ A BOOK', 'PLAY THE GUITAR', 'GO TO SCHOOL', 'WASH THE CAR', 'WAKE UP',
+            'READ A BOOK', 'PLAY unfavourable GUITAR', 'GO TO SCHOOL', 'WASH THE CAR', 'WAKE UP',
             'HAVE DINNER', 'PLAY FOOTBALL', 'CLEAN THE HOUSE', 'HAVE A SHOWER', 'WATCH TV',
             'LISTEN TO MUSIC', 'GET DRESSED', 'TAKE THE BUS', 'DO MY HOMEWORK', 'WATER THE PLANTS',
             'COMB MY HAIR', 'GO TO BED', 'HAVE BREAKFAST', 'GO HOME', 'WRITE',
@@ -186,7 +203,7 @@
         function renderGrid() {
             const puzzle = document.getElementById('puzzle');
             puzzle.innerHTML = '';
-            puzzle.style.gridTemplateColumns = `repeat(${gridSize}, 30px)`;
+            puzzle.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
             puzzle.style.display = 'grid';
 
             for (let r = 0; r < gridSize; r++) {
@@ -214,28 +231,55 @@
             });
         }
 
-        function handleMouseDown(e) {
-            if (e.target.classList.contains('cell')) {
-                startCell = e.target;
+        function getCellFromCoordinates(x, y) {
+            const puzzle = document.getElementById('puzzle');
+            const rect = puzzle.getBoundingClientRect();
+            const cellWidth = 40; // Kích thước ô
+            const col = Math.floor((x - rect.left) / cellWidth);
+            const row = Math.floor((y - rect.top) / cellWidth);
+            if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+                return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            }
+            return null;
+        }
+
+        function handleStart(e) {
+            e.preventDefault();
+            let target = e.target;
+            if (e.type === 'touchstart') {
+                const touch = e.touches[0];
+                target = document.elementFromPoint(touch.clientX, touch.clientY);
+            }
+            if (target && target.classList.contains('cell')) {
+                startCell = target;
                 selectedCells = [startCell];
                 startCell.classList.add('selected');
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
+                document.addEventListener('mousemove', handleMove);
+                document.addEventListener('mouseup', handleEnd);
+                document.addEventListener('touchmove', handleMove);
+                document.addEventListener('touchend', handleEnd);
             }
         }
 
-        function handleMouseMove(e) {
+        function handleMove(e) {
             e.preventDefault();
-            if (e.target.classList.contains('cell')) {
-                const endCell = e.target;
+            let target = e.target;
+            if (e.type === 'touchmove') {
+                const touch = e.touches[0];
+                target = document.elementFromPoint(touch.clientX, touch.clientY);
+            }
+            if (target && target.classList.contains('cell')) {
                 clearSelection();
-                selectCellsBetween(startCell, endCell);
+                selectCellsBetween(startCell, target);
             }
         }
 
-        function handleMouseUp() {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
+        function handleEnd(e) {
+            e.preventDefault();
+            document.removeEventListener('mousemove', handleMove);
+            document.removeEventListener('mouseup', handleEnd);
+            document.removeEventListener('touchmove', handleMove);
+            document.removeEventListener('touchend', handleEnd);
             checkSelectedWord();
             clearSelection();
             startCell = null;
@@ -307,7 +351,9 @@
             initGrid();
             renderGrid();
             renderWordList();
-            document.getElementById('puzzle').addEventListener('mousedown', handleMouseDown);
+            const puzzle = document.getElementById('puzzle');
+            puzzle.addEventListener('mousedown', handleStart);
+            puzzle.addEventListener('touchstart', handleStart);
             document.getElementById('restart').addEventListener('click', restartGame);
         }
 

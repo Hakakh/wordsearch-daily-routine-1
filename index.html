@@ -150,8 +150,7 @@
             placeWords();
             if (unplacedWords.length > 0) {
                 console.warn('Các từ không được đặt:', unplacedWords);
-                // Thử lại nếu có từ bị thiếu
-                initGrid();
+                initGrid(); // Thử lại nếu có từ bị thiếu
             }
             fillEmptyCells();
         }
@@ -175,7 +174,7 @@
             sortedWords.forEach(({ word, index }) => {
                 let placed = false;
                 let attempts = 0;
-                const maxAttempts = 200; // Tăng số lần thử
+                const maxAttempts = 200;
 
                 while (!placed && attempts < maxAttempts) {
                     attempts++;
@@ -270,8 +269,10 @@
             const col = Math.floor((x - rect.left) / cellWidth);
             const row = Math.floor((y - rect.top) / cellWidth);
             if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
-                return document.querySelector(`.cell[data-row="${row}"][data-col="${c}"]`);
+                console.log(`Tọa độ: x=${x}, y=${y}, row=${row}, col=${col}`);
+                return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             }
+            console.warn(`Tọa độ ngoài phạm vi: row=${row}, col=${col}`);
             return null;
         }
 
@@ -335,7 +336,7 @@
             for (let i = 0; i <= steps; i++) {
                 const r = Math.round(startRow + i * stepRow);
                 const c = Math.round(startCol + i * stepCol);
-                if (r >= 0 && r < gridSize && c >= 0 && c < gridSimplify) {
+                if (r >= 0 && r < gridSize && c >= 0 && c < gridSize) {
                     const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
                     selectedCells.push(cell);
                     cell.classList.add('selected');

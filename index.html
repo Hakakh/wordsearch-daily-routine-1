@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Trò Chơi Wordsearch</title>
     <style>
         body {
@@ -13,7 +16,7 @@
             background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
-            touch-action: none; /* Ngăn cuộn mặc định */
+            overflow-x: hidden;
         }
         .container {
             display: flex;
@@ -26,16 +29,16 @@
             border: 2px solid #333;
             background-color: white;
             user-select: none;
-            touch-action: none;
+            touch-action: none; /* Ngăn cuộn chỉ trong lưới */
         }
         .cell {
-            width: 40px;
-            height: 40px;
+            width: 35px;
+            height: 35px;
             display: inline-flex;
             justify-content: center;
             align-items: center;
             border: 1px solid #ddd;
-            font-size: 18px;
+            font-size: 16px;
             text-transform: uppercase;
             cursor: pointer;
             transition: background-color 0.2s;
@@ -81,9 +84,12 @@
         }
         @media (max-width: 768px) {
             .cell {
-                width: 35px;
-                height: 35px;
-                font-size: 16px;
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+            }
+            #puzzle {
+                grid-template-columns: repeat(20, 30px);
             }
             #word-list {
                 max-width: 100%;
@@ -110,7 +116,7 @@
     <script>
         const words = [
             'WALK THE DOG', 'MAKE THE BED', 'RIDE A BIKE', 'HAVE A BATH', 'BRUSH MY TEETH',
-            'READ A BOOK', 'PLAY unfavourable GUITAR', 'GO TO SCHOOL', 'WASH THE CAR', 'WAKE UP',
+            'READ A BOOK', 'PLAY THE GUITAR', 'GO TO SCHOOL', 'WASH THE CAR', 'WAKE UP',
             'HAVE DINNER', 'PLAY FOOTBALL', 'CLEAN THE HOUSE', 'HAVE A SHOWER', 'WATCH TV',
             'LISTEN TO MUSIC', 'GET DRESSED', 'TAKE THE BUS', 'DO MY HOMEWORK', 'WATER THE PLANTS',
             'COMB MY HAIR', 'GO TO BED', 'HAVE BREAKFAST', 'GO HOME', 'WRITE',
@@ -203,7 +209,7 @@
         function renderGrid() {
             const puzzle = document.getElementById('puzzle');
             puzzle.innerHTML = '';
-            puzzle.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
+            puzzle.style.gridTemplateColumns = `repeat(${gridSize}, 35px)`;
             puzzle.style.display = 'grid';
 
             for (let r = 0; r < gridSize; r++) {
@@ -234,7 +240,7 @@
         function getCellFromCoordinates(x, y) {
             const puzzle = document.getElementById('puzzle');
             const rect = puzzle.getBoundingClientRect();
-            const cellWidth = 40; // Kích thước ô
+            const cellWidth = window.innerWidth <= 768 ? 30 : 35; // Kích thước ô tùy theo màn hình
             const col = Math.floor((x - rect.left) / cellWidth);
             const row = Math.floor((y - rect.top) / cellWidth);
             if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
